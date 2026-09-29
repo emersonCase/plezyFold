@@ -2978,6 +2978,12 @@ class MpvPlayerCore private constructor(
     // MPV handles aspect ratio internally via its own surface management
   }
 
+  fun setVideoRect(left: Int, top: Int, right: Int, bottom: Int) {
+    activity.runOnUiThread {
+      surfaceContainer?.let { PlayerSurfaceHost.setBounds(it, left, top, right, bottom) }
+    }
+  }
+
   override fun updateFrame() {
     // Audio-only: no surface to refresh — tolerated no-op.
     if (audioOnly || disposing) return

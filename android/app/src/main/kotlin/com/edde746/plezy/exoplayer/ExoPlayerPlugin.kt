@@ -266,6 +266,7 @@ class ExoPlayerPlugin :
       "setSubtitleStyle" -> handleSetSubtitleStyle(call, result)
       "setBoxFitMode" -> handleSetBoxFitMode(call, result)
       "setVideoZoom" -> handleSetVideoZoom(call, result)
+      "setVideoRect" -> handleSetVideoRect(call, result)
       "setDvConversionMode" -> handleSetDvConversionMode(call, result)
       "setAudioNormalization" -> handleSetAudioNormalization(call, result)
       "setAudioPassthrough" -> handleSetAudioPassthrough(call, result)
@@ -286,6 +287,24 @@ class ExoPlayerPlugin :
       }
       else -> result.notImplemented()
     }
+  }
+
+  private fun handleSetVideoRect(call: MethodCall, result: MethodChannel.Result) {
+    val left = call.argument<Int>("left")
+    val top = call.argument<Int>("top")
+    val right = call.argument<Int>("right")
+    val bottom = call.argument<Int>("bottom")
+    if (left == null || top == null || right == null || bottom == null || right <= left || bottom <= top) {
+      result.error("INVALID_ARGUMENT", "Valid video bounds are required", null)
+      return
+    }
+
+    if (usingMpvFallback) {
+      mpvCore?.setVideoRect(left, top, right, bottom)
+    } else {
+      playerCore?.setVideoRect(left, top, right, bottom)
+    }
+    result.success(null)
   }
 
   private fun handleInitialize(call: MethodCall, result: MethodChannel.Result) {

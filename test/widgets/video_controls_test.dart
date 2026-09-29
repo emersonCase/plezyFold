@@ -1329,6 +1329,7 @@ void main() {
       WidgetTester tester, {
       required Size physicalSize,
       FakeViewPadding padding = FakeViewPadding.zero,
+      bool compactTabletop = false,
     }) async {
       LocaleSettings.setLocaleSync(AppLocale.en);
       await initializeDateFormatting('en');
@@ -1357,12 +1358,13 @@ void main() {
                 chapters: const [],
                 chaptersLoaded: true,
                 seekTimeSmall: 10,
-                trackChapterControls: const SizedBox.shrink(),
+                trackChapterControls: const SizedBox(key: Key('track-chapter-controls')),
                 onSeek: (_) {},
                 onSeekEnd: (_) {},
                 onPlayPause: () {},
                 onStartAutoHide: () {},
                 onCancelAutoHide: () {},
+                compactTabletop: compactTabletop,
               ),
             ),
           ),
@@ -1392,6 +1394,16 @@ void main() {
       );
       final backButton = tester.getRect(find.byType(AppBarBackButton));
       expect(backButton.left, greaterThanOrEqualTo(44));
+    });
+
+    testWidgets('tabletop mode keeps compact controls and omits header extras', (tester) async {
+      await pumpMobileControls(tester, physicalSize: const Size(2152, 1038), compactTabletop: true);
+
+      expect(find.byType(VideoTimelineBar), findsOneWidget);
+      expect(find.bySemanticsLabel(t.videoControls.playButton), findsOneWidget);
+      expect(find.byType(SystemClock), findsNothing);
+      expect(find.byKey(const Key('track-chapter-controls')), findsNothing);
+      expect(tester.takeException(), isNull);
     });
   });
 

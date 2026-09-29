@@ -84,6 +84,17 @@ internal object PlayerSurfaceHost {
     return contentView
   }
 
+  fun setBounds(container: FrameLayout, left: Int, top: Int, right: Int, bottom: Int) {
+    val width = right - left
+    val height = bottom - top
+    if (width <= 0 || height <= 0) return
+    container.layoutParams = FrameLayout.LayoutParams(width, height).apply {
+      leftMargin = left
+      topMargin = top
+    }
+    container.requestLayout()
+  }
+
   fun ensureFlutterOverlayOnTop(contentView: ViewGroup, surfaceContainer: ViewGroup?): Boolean {
     val flutterContainer = FlutterOverlayHelper.findFlutterContainer(contentView, surfaceContainer)
       ?: return false

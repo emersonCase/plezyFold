@@ -87,6 +87,10 @@ class MobileVideoControls extends StatefulWidget {
   /// Returns true when a global touch position belongs to the parent edge-adjustment zone.
   final bool Function(Offset globalPosition)? isInEdgeAdjustmentZone;
 
+  /// Keeps the existing mobile transport and timeline controls inside the
+  /// lower physical pane of a tabletop foldable.
+  final bool compactTabletop;
+
   const MobileVideoControls({
     super.key,
     required this.player,
@@ -123,6 +127,7 @@ class MobileVideoControls extends StatefulWidget {
     this.chromeController,
     this.onStripVisibilityChanged,
     this.isInEdgeAdjustmentZone,
+    this.compactTabletop = false,
   });
 
   @override
@@ -223,6 +228,16 @@ class _MobileVideoControlsState extends State<MobileVideoControls> with SingleTi
 
   @override
   Widget build(BuildContext context) {
+    if (widget.compactTabletop) {
+      return Column(
+        children: [
+          _buildTopBar(context),
+          Expanded(child: Center(child: _buildPlaybackControls(context))),
+          _buildBottomBar(context),
+        ],
+      );
+    }
+
     if (!_hasStripContent) {
       return Column(
         children: [
@@ -324,12 +339,12 @@ class _MobileVideoControlsState extends State<MobileVideoControls> with SingleTi
         padding: const EdgeInsets.all(16),
         child: VideoControlsHeader(
           metadata: widget.metadata,
-          style: VideoHeaderStyle.multiLine,
+          style: widget.compactTabletop ? VideoHeaderStyle.singleLine : VideoHeaderStyle.multiLine,
           onCancelAutoHide: widget.onCancelAutoHide,
           onStartAutoHide: widget.onStartAutoHide,
-          trailing: widget.trackChapterControls,
+          trailing: widget.compactTabletop ? null : widget.trackChapterControls,
           onBack: widget.onBack,
-          showClock: !isPortraitPhone,
+          showClock: !widget.compactTabletop && !isPortraitPhone,
         ),
       ),
     );

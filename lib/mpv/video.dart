@@ -26,6 +26,7 @@ class Video extends StatefulWidget {
   final Widget Function(BuildContext context)? controls;
   final Color backgroundColor;
   final ValueListenable<bool>? hasFirstFrame;
+  final Rect? videoRect;
 
   const Video({
     super.key,
@@ -33,6 +34,7 @@ class Video extends StatefulWidget {
     this.controls,
     this.backgroundColor = Colors.black,
     this.hasFirstFrame,
+    this.videoRect,
   });
 
   @override
@@ -52,6 +54,7 @@ class _VideoState extends State<Video> {
   double _sentDevicePixelRatio = 0;
   bool _hasFirstFrame = false;
   StreamSubscription<void>? _playbackRestartSubscription;
+  StreamSubscription<void>? _backendSwitchSubscription;
 
   @override
   void initState() {
@@ -59,6 +62,7 @@ class _VideoState extends State<Video> {
     _hasFirstFrame = widget.hasFirstFrame?.value ?? false;
     widget.hasFirstFrame?.addListener(_syncExternalFirstFrame);
     _listenForPlaybackRestart();
+    _listenForBackendSwitch();
   }
 
   @override
@@ -72,6 +76,7 @@ class _VideoState extends State<Video> {
     }
     if (oldWidget.player != widget.player) {
       _listenForPlaybackRestart();
+      _listenForBackendSwitch();
       _syncExternalFirstFrame();
       // The cache describes the old player's native surface. Keeping it would
       // let the next frame short-circuit as "geometry unchanged", and the
@@ -85,6 +90,7 @@ class _VideoState extends State<Video> {
   void dispose() {
     widget.hasFirstFrame?.removeListener(_syncExternalFirstFrame);
     _playbackRestartSubscription?.cancel();
+    _backendSwitchSubscription?.cancel();
     super.dispose();
   }
 
@@ -99,6 +105,14 @@ class _VideoState extends State<Video> {
     if (widget.hasFirstFrame != null) return;
     _playbackRestartSubscription = widget.player.streams.playbackRestart.listen((_) {
       _setHasFirstFrame(true);
+    });
+  }
+
+  void _listenForBackendSwitch() {
+    _backendSwitchSubscription?.cancel();
+    _backendSwitchSubscription = widget.player.streams.backendSwitched.listen((_) {
+      _hasSentRect = false;
+      if (mounted) setState(() {});
     });
   }
 
@@ -120,8 +134,20 @@ class _VideoState extends State<Video> {
       child: Stack(
         fit: StackFit.expand,
         children: [
+          if (widget.videoRect case final rect?)
+            Positioned(
+              left: 0,
+              top: rect.bottom,
+              right: 0,
+              bottom: 0,
+              child: ColoredBox(color: widget.backgroundColor),
+            ),
+
           // Video rendering area
-          _buildVideoSurface(),
+          if (widget.videoRect case final rect?)
+            Positioned.fromRect(rect: rect, child: _buildVideoSurface())
+          else
+            _buildVideoSurface(),
 
           // Controls overlay
           if (widget.controls != null) widget.controls!(context),

@@ -625,6 +625,10 @@ class PlexVideoControls extends StatefulWidget {
   /// Shared controller for player chrome visibility, auto-hide, and layout state.
   final PlayerChromeController chromeController;
 
+  /// Lower-pane bounds when the player is using tabletop layout. Null keeps
+  /// the upstream full-screen controls unchanged.
+  final Rect? tabletopControlsRect;
+
   /// Optional shader service for MPV shader control
   final ShaderService? shaderService;
 
@@ -731,6 +735,7 @@ class PlexVideoControls extends StatefulWidget {
     this.playNextFocusNode,
     this.playbackPromptOpen = false,
     required this.chromeController,
+    this.tabletopControlsRect,
     this.shaderService,
     this.onShaderChanged,
     this.thumbnailDataBuilder,
@@ -1315,7 +1320,7 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
                                                     final canShowQueue =
                                                         playbackState.isQueueActive && widget.canNavigateMediaItems;
                                                     final hasStripContent = _chapters.isNotEmpty || canShowQueue;
-                                                    return MobileVideoControls(
+                                                    final controls = MobileVideoControls(
                                                       player: widget.player,
                                                       metadata: widget.metadata,
                                                       chapters: _chapters,
@@ -1358,6 +1363,14 @@ class _PlexVideoControlsState extends State<PlexVideoControls>
                                                         }
                                                       },
                                                       isInEdgeAdjustmentZone: _isGlobalPositionInEdgeAdjustmentZone,
+                                                      compactTabletop: widget.tabletopControlsRect != null,
+                                                    );
+                                                    final tabletopRect = widget.tabletopControlsRect;
+                                                    if (tabletopRect == null) return controls;
+                                                    return Stack(
+                                                      children: [
+                                                        Positioned.fromRect(rect: tabletopRect, child: controls),
+                                                      ],
                                                     );
                                                   },
                                                 ),

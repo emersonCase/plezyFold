@@ -6,9 +6,10 @@ import '../../../services/device_performance.dart';
 import '../../../services/settings_service.dart';
 import '../../models.dart';
 import '../player_base.dart';
+import '../video_rect_support.dart';
 
 /// Android implementation using ExoPlayer with ASS subtitle support via libass-android.
-class PlayerAndroid extends PlayerBase {
+class PlayerAndroid extends PlayerBase implements VideoRectSupport {
   static const _methodChannel = MethodChannel('com.plezy/exo_player');
   static const _eventChannel = EventChannel('com.plezy/exo_player/events');
 
@@ -78,6 +79,17 @@ class PlayerAndroid extends PlayerBase {
 
   @override
   bool get audioPassthroughActive => _audioPassthroughEnabled;
+
+  @override
+  Future<void> setVideoRect({
+    required int left,
+    required int top,
+    required int right,
+    required int bottom,
+    required double devicePixelRatio,
+  }) async {
+    await invoke('setVideoRect', {'left': left, 'top': top, 'right': right, 'bottom': bottom});
+  }
 
   @override
   void handlePlayerEvent(String name, Map? data) {

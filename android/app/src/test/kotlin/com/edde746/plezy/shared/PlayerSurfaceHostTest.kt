@@ -41,4 +41,18 @@ class PlayerSurfaceHostTest {
     assertEquals(FrameLayout.LayoutParams.MATCH_PARENT, surface.layoutParams.width)
     assertEquals(FrameLayout.LayoutParams.MATCH_PARENT, surface.layoutParams.height)
   }
+
+  @Test
+  fun setBoundsPlacesTheNativeSurfaceContainerInsideOnePhysicalPane() {
+    val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+    val container = PlayerSurfaceHost.createContainer(activity)
+
+    PlayerSurfaceHost.setBounds(container, left = 0, top = 0, right = 2152, bottom = 1038)
+
+    val params = container.layoutParams as FrameLayout.LayoutParams
+    assertEquals(2152, params.width)
+    assertEquals(1038, params.height)
+    assertEquals(0, params.leftMargin)
+    assertEquals(0, params.topMargin)
+  }
 }

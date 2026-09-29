@@ -62,6 +62,12 @@ Fully open the device, then place it in tabletop posture. A supported device sho
 and `halfOpened` transitions; tabletop is a horizontal `halfOpened` fold. Ordinary Android devices
 report `unsupported` and retain the standard layout.
 
+For tabletop playback verification, start a video while flat and then fold the device to roughly 90°
+with the hinge horizontal. The picture should resize into the upper pane without crossing the hinge;
+the title, transport controls, and timeline should remain usable in the lower pane. Confirm play/pause,
+seeking, and Back work there, then unfold and verify the ordinary full-screen player returns without
+restarting playback. A vertical half-open (book posture) must retain the ordinary player layout.
+
 Prerequisites: Java 17, Flutter and Android SDK/platform tools, a running Android emulator, Docker, and the
 [Maestro CLI](https://docs.maestro.dev/getting-started/installing-maestro).
 

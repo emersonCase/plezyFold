@@ -1759,6 +1759,12 @@ class ExoPlayerCore(private val activity: Activity) :
     updateSurfaceViewSize(videoSize.width, videoSize.height, videoSize.pixelWidthHeightRatio)
   }
 
+  fun setVideoRect(left: Int, top: Int, right: Int, bottom: Int) {
+    activity.runOnUiThread {
+      surfaceContainer?.let { PlayerSurfaceHost.setBounds(it, left, top, right, bottom) }
+    }
+  }
+
   private fun updateSurfaceViewSize(videoWidth: Int, videoHeight: Int, pixelRatio: Float) {
     if (disposing) return
     if (videoWidth == 0 || videoHeight == 0) return
