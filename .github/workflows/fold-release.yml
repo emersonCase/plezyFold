@@ -46,6 +46,11 @@ jobs:
         shell: bash
         run: flutter pub get --enforce-lockfile --no-example
 
+      - name: Install wakelock_plus development dependencies
+        working-directory: packages/wakelock_plus
+        shell: bash
+        run: flutter pub get --enforce-lockfile --no-example
+
       - name: Run repository guards
         shell: bash
         run: bash scripts/ci_guard_checks.sh

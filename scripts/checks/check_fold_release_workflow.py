@@ -45,6 +45,7 @@ require(
 )
 
 ordered_build_steps = (
+    "Install wakelock_plus development dependencies",
     "Run repository guards",
     "Analyze code",
     "Run unit and widget tests",
@@ -54,6 +55,10 @@ ordered_build_steps = (
 positions = [build.find(f"      - name: {name}\n") for name in ordered_build_steps]
 require(all(position >= 0 for position in positions), "build job is missing a required validation or build step")
 require(positions == sorted(positions), "tests and analysis must complete before the APK is built and uploaded")
+require(
+    "working-directory: packages/wakelock_plus" in build,
+    "analysis requires the vendored wakelock_plus development dependencies",
+)
 require(
     "Required Android signing secret is not configured" in build
     and "ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}" in build,

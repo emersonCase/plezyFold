@@ -59,6 +59,21 @@ class FoldReleaseWorkflowGuardTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("missing a required validation or build step", result.stderr)
 
+    def test_release_without_vendored_development_dependencies_is_rejected(self) -> None:
+        workflow = self._workflow().replace(
+            "      - name: Install wakelock_plus development dependencies\n"
+            "        working-directory: packages/wakelock_plus\n"
+            "        shell: bash\n"
+            "        run: flutter pub get --enforce-lockfile --no-example\n\n",
+            "",
+            1,
+        )
+
+        result = self._run(workflow)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("missing a required validation or build step", result.stderr)
+
     def test_publish_without_build_dependency_is_rejected(self) -> None:
         workflow = self._workflow().replace("    needs: build-and-test\n", "", 1)
 
