@@ -1,0 +1,150 @@
+name: Fold APK Release
+run-name: Release ${{ github.ref_name }}
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-and-test:
+    name: Test and build Android APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Validate release tag
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tag must match vX.Y.Z; got: $RELEASE_TAG" >&2
+            exit 1
+          fi
+
+      - name: Setup Java
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: "stable"
+          flutter-version: "3.47.1"
+          cache: true
+          pub-cache: false
+
+      - name: Install dependencies
+        shell: bash
+        run: flutter pub get --enforce-lockfile --no-example
+
+      - name: Run repository guards
+        shell: bash
+        run: bash scripts/ci_guard_checks.sh
+
+      - name: Analyze code
+        shell: bash
+        run: dart run scripts/checks/check_analyzer.dart
+
+      - name: Run unit and widget tests
+        shell: bash
+        run: scripts/run_tests.sh
+
+      - name: Configure Android release signing
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          for variable in \
+            ANDROID_KEYSTORE_BASE64 \
+            ANDROID_STORE_PASSWORD \
+            ANDROID_KEY_PASSWORD \
+            ANDROID_KEY_ALIAS; do
+            if [[ -z "${!variable}" ]]; then
+              echo "Required Android signing secret is not configured: $variable" >&2
+              exit 1
+            fi
+          done
+
+          keystore="$RUNNER_TEMP/plezy-fold-upload-keystore.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          chmod 600 "$keystore"
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_STORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=$keystore
+          EOF
+
+      - name: Build signed release APK
+        shell: bash
+        run: >-
+          flutter build apk --release
+          --dart-define=GIT_COMMIT=${{ github.sha }}
+
+      - name: Remove signing material
+        if: always()
+        shell: bash
+        run: |
+          rm -f android/key.properties
+          rm -f "$RUNNER_TEMP/plezy-fold-upload-keystore.jks"
+
+      - name: Prepare release artifact
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p release
+          install -m 0644 \
+            build/app/outputs/flutter-apk/app-release.apk \
+            "release/plezy-fold-${RELEASE_TAG}-android.apk"
+          (cd release && sha256sum "plezy-fold-${RELEASE_TAG}-android.apk" > SHA256SUMS)
+
+      - name: Upload tested APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: fold-android-apk
+          path: release/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download tested APK
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: fold-android-apk
+          path: release
+
+      - name: Verify release artifact
+        shell: bash
+        run: cd release && sha256sum --check SHA256SUMS
+
+      - name: Publish release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
+        with:
+          files: release/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          name: plezyFold ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

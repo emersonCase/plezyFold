@@ -11,6 +11,7 @@ cd "$ROOT_DIR"
 
 for checker in \
   scripts/checks/check_build_workflow.py \
+  scripts/checks/check_fold_release_workflow.py \
   scripts/checks/check_apple_spm_locks.py \
   scripts/checks/check_tvos_test_wiring.py \
   scripts/checks/check_shrinker_rules.py \
