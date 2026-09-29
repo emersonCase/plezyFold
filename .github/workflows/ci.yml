@@ -593,6 +593,9 @@ jobs:
 
   website:
     name: Website checks
+    # plezyFold changes the application, not the plezy.app marketing site.
+    # Upstream pull requests still run this job in the upstream repository.
+    if: ${{ github.repository != 'emersonCase/plezyFold' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
