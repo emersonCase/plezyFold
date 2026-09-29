@@ -34,6 +34,7 @@ import 'screens/profile/pin_entry_dialog.dart';
 import 'screens/profile/profile_switch_screen.dart';
 import 'services/storage_service.dart';
 import 'services/assistive_technology_service.dart';
+import 'services/fold_posture_service.dart';
 import 'services/device_performance.dart';
 import 'services/video_decode_capabilities.dart';
 import 'services/macos_window_service.dart';
@@ -149,6 +150,9 @@ void main() {
   // Android: skip the per-frame semantics pass when the only bound
   // accessibility service cannot read it (launcher hooks, key remappers).
   AssistiveTechnologyService.instance.ensureStarted();
+  // Android foldables: observe supported posture/hinge state. No UI consumes
+  // it until tabletop playback is introduced, so ordinary layout is unchanged.
+  FoldPostureService.instance.ensureStarted();
   _installZeroOffsetPointerGuard(); // Workaround for iPadOS 26.1+ modal dismissal bug
 
   // On tvOS, Flutter's generated plugin registrant doesn't run (no tvOS

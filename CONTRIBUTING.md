@@ -49,6 +49,19 @@ All these checks must pass before your changes can be merged.
 
 Android E2E tests use [Maestro](https://maestro.mobile.dev/) against a disposable, pre-seeded Jellyfin container.
 
+### Fold posture verification
+
+On a connected Android foldable, watch Jetpack WindowManager posture changes with:
+
+```bash
+adb logcat -c
+adb logcat -s PlezyFoldPosture:I '*:S'
+```
+
+Fully open the device, then place it in tabletop posture. A supported device should report `flat`
+and `halfOpened` transitions; tabletop is a horizontal `halfOpened` fold. Ordinary Android devices
+report `unsupported` and retain the standard layout.
+
 Prerequisites: Java 17, Flutter and Android SDK/platform tools, a running Android emulator, Docker, and the
 [Maestro CLI](https://docs.maestro.dev/getting-started/installing-maestro).
 

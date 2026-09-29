@@ -428,6 +428,10 @@ dependencies {
   implementation(project(":libmpv"))
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
+  // Fold posture and hinge geometry. WindowManager reports supported folding
+  // features without device-model checks and is a no-op on ordinary displays.
+  implementation("androidx.window:window:1.4.0")
+
   // Android TV Watch Next integration
   implementation("androidx.tvprovider:tvprovider:1.1.0")
 

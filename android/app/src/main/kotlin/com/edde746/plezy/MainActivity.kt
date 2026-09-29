@@ -29,6 +29,7 @@ import android.widget.FrameLayout
 import androidx.annotation.RequiresApi
 import com.edde746.plezy.car.CarRestrictionsMonitor
 import com.edde746.plezy.exoplayer.ExoPlayerPlugin
+import com.edde746.plezy.fold.FoldPostureMonitor
 import com.edde746.plezy.mpv.MpvAudioPlayerPlugin
 import com.edde746.plezy.mpv.MpvPlayerPlugin
 import com.edde746.plezy.shared.AssistiveTechnologyMonitor
@@ -52,6 +53,7 @@ class MainActivity : FlutterActivity() {
 
   companion object {
     private const val TAG = "MainActivity"
+    private const val FOLD_POSTURE_CHANNEL = "com.plezy/fold_posture"
     private const val TEXT_INPUT_DIAGNOSTICS_ENABLED = false
 
     // Safety net for a device where the text-editor proxy (see
@@ -110,6 +112,8 @@ class MainActivity : FlutterActivity() {
   private var carRestrictionsChannel: MethodChannel? = null
   private var assistiveTechnology: AssistiveTechnologyMonitor? = null
   private var assistiveTechnologyChannel: MethodChannel? = null
+  private var foldPosture: FoldPostureMonitor? = null
+  private var foldPostureChannel: MethodChannel? = null
   private var nativeTextInputFocused = false
   private var imeLeakRestartBudget = 0
   private var lastImeLeakRestartUptime = 0L
@@ -616,6 +620,9 @@ class MainActivity : FlutterActivity() {
     assistiveTechnology?.release()
     assistiveTechnology = null
     assistiveTechnologyChannel = null
+    foldPosture?.release()
+    foldPosture = null
+    foldPostureChannel = null
     activityStarted = false
     flutterSurfaceReconnectPending = false
     flutterTextureView = null
@@ -725,6 +732,7 @@ class MainActivity : FlutterActivity() {
 
   override fun onStop() {
     activityStarted = false
+    foldPosture?.stop()
     if (isAndroidTvDevice()) flutterSurfaceReconnectPending = true
     super.onStop()
   }
@@ -732,6 +740,7 @@ class MainActivity : FlutterActivity() {
   override fun onStart() {
     super.onStart()
     activityStarted = true
+    startFoldPostureObserver()
     tryReconnectFlutterSurface()
   }
 
@@ -911,6 +920,17 @@ class MainActivity : FlutterActivity() {
       }
     }
 
+    val postureChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, FOLD_POSTURE_CHANNEL)
+    foldPostureChannel = postureChannel
+    val postureMonitor = foldPosture ?: FoldPostureMonitor(this).also { foldPosture = it }
+    postureChannel.setMethodCallHandler { call, result ->
+      when (call.method) {
+        "getState" -> result.success(postureMonitor.state.toMap())
+        else -> result.notImplemented()
+      }
+    }
+    if (activityStarted) startFoldPostureObserver()
+
     MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DEVICE_ADJUSTMENT_CHANNEL).setMethodCallHandler { call, result ->
       handleDeviceAdjustmentCall(call.method, call.arguments, result)
     }
@@ -1040,6 +1060,12 @@ class MainActivity : FlutterActivity() {
         }
         else -> result.notImplemented()
       }
+    }
+  }
+
+  private fun startFoldPostureObserver() {
+    foldPosture?.start { state ->
+      runOnUiThread { foldPostureChannel?.invokeMethod("onChanged", state.toMap()) }
     }
   }
 
