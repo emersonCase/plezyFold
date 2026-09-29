@@ -40,13 +40,16 @@ void main() {
   });
 
   test('flat and half-opened platform transitions stay distinguishable', () async {
-    messenger.setMockMethodCallHandler(channel, (_) async => <String, Object?>{
-          'posture': 'flat',
-          'orientation': 'vertical',
-          'boundsPhysicalPixels': <String, int>{'left': 900, 'top': 0, 'right': 940, 'bottom': 2208},
-          'separating': false,
-          'occlusion': 'none',
-        });
+    messenger.setMockMethodCallHandler(
+      channel,
+      (_) async => <String, Object?>{
+        'posture': 'flat',
+        'orientation': 'vertical',
+        'boundsPhysicalPixels': <String, int>{'left': 900, 'top': 0, 'right': 940, 'bottom': 2208},
+        'separating': false,
+        'occlusion': 'none',
+      },
+    );
 
     service.ensureStarted();
     await pumpEventQueue();
