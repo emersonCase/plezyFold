@@ -228,6 +228,7 @@ open class MpvPlayerPlugin(
       "observeProperty" -> handleObserveProperty(call, result)
       "command" -> handleCommand(call, result)
       "setVisible" -> handleSetVisible(call, result)
+      "setVideoRect" -> handleSetVideoRect(call, result)
       "updateFrame" -> handleUpdateFrame(result)
       "setVideoFrameRate" -> handleSetVideoFrameRate(call, result)
       "clearVideoFrameRate" -> handleClearVideoFrameRate(result)
@@ -247,6 +248,26 @@ open class MpvPlayerPlugin(
       "setLogLevel" -> handleSetLogLevel(call, result)
       else -> result.notImplemented()
     }
+  }
+
+  private fun handleSetVideoRect(call: MethodCall, result: MethodChannel.Result) {
+    val left = call.argument<Int>("left")
+    val top = call.argument<Int>("top")
+    val right = call.argument<Int>("right")
+    val bottom = call.argument<Int>("bottom")
+    if (left == null || top == null || right == null || bottom == null || right <= left || bottom <= top) {
+      result.error("INVALID_ARGUMENT", "Valid video bounds are required", null)
+      return
+    }
+
+    val core = playerCore
+    if (core == null || !core.isInitialized) {
+      result.error("NOT_INITIALIZED", "MPV player is not initialized", null)
+      return
+    }
+
+    core.setVideoRect(left, top, right, bottom)
+    result.success(null)
   }
 
   /**

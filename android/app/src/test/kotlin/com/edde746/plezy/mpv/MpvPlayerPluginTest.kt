@@ -65,6 +65,40 @@ class MpvPlayerPluginTest {
   }
 
   @Test
+  fun setVideoRectWithoutCoreReportsNotInitialized() {
+    val result = RecordingResult()
+
+    MpvPlayerPlugin().onMethodCall(
+      MethodCall(
+        "setVideoRect",
+        mapOf("left" to 0, "top" to 0, "right" to 2152, "bottom" to 1038)
+      ),
+      result
+    )
+
+    assertEquals("NOT_INITIALIZED", result.errorCode)
+    assertEquals(1, result.completionCount)
+    assertNull(result.successValue)
+  }
+
+  @Test
+  fun setVideoRectRejectsEmptyBoundsBeforeTouchingTheCore() {
+    val result = RecordingResult()
+
+    MpvPlayerPlugin().onMethodCall(
+      MethodCall(
+        "setVideoRect",
+        mapOf("left" to 0, "top" to 0, "right" to 0, "bottom" to 1038)
+      ),
+      result
+    )
+
+    assertEquals("INVALID_ARGUMENT", result.errorCode)
+    assertEquals(1, result.completionCount)
+    assertNull(result.successValue)
+  }
+
+  @Test
   fun commandWithoutNativePlayerReportsFailureInsteadOfSilentSuccess() {
     // A load that never reached mpv produces no source; answering success
     // would leave Dart waiting on a start-file that never comes.
