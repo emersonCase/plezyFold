@@ -973,6 +973,8 @@ class VideoPlayerScreenState extends State<VideoPlayerScreen>
   Size? _lastVideoLayoutSize;
   Size? _pendingVideoLayoutSize;
   Player? _lastVideoLayoutPlayer;
+  bool _lastVideoLayoutIsTabletop = false;
+  bool _pendingVideoLayoutIsTabletop = false;
   bool _videoLayoutUpdateScheduled = false;
   double? _pinchStartZoomScale;
   int _pinchZoomActivationUpdateCount = 0;

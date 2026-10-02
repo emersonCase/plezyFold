@@ -348,6 +348,8 @@ extension _VideoPlayerPlaybackServiceMethods on VideoPlayerScreenState {
       _lastVideoLayoutPlayer = null;
       _lastVideoLayoutSize = null;
       _pendingVideoLayoutSize = null;
+      _lastVideoLayoutIsTabletop = false;
+      _pendingVideoLayoutIsTabletop = false;
     }
     _audioFocusFuture = null;
     _playbackDataFuture = null;

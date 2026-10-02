@@ -41,6 +41,7 @@ extension _VideoPlayerPipMethods on VideoPlayerScreenState {
         nativeVideoZoom: Platform.isIOS,
         initialBoxFitMode: ScopedPlayerPrefs.resolve(ScopedPlayerPrefs.boxFitMode, _currentMetadata),
         initialPlayerSize: initialPlayerSize,
+        initialTabletopContainMode: _lastVideoLayoutPlayer == currentPlayer && _lastVideoLayoutIsTabletop,
         // Reads _currentMetadata at invocation time so a cycle after an
         // in-place episode swap keys against the item actually on screen.
         onBoxFitModeChanged: (mode) =>

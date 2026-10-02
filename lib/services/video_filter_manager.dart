@@ -55,6 +55,11 @@ class VideoFilterManager {
   /// BoxFit mode state: 0=contain (letterbox), 1=cover (fill screen), 2=fill (stretch)
   int _boxFitMode;
 
+  /// Tabletop's unusually wide video pane must never distort or crop the
+  /// picture. Keep the user's ordinary preference underneath this temporary
+  /// contain override so unfolding restores it.
+  bool _tabletopContainMode;
+
   /// Store the boxFitMode before entering PiP so it can be restored
   int? _prePipBoxFitMode;
 
@@ -94,8 +99,10 @@ class VideoFilterManager {
     this.nativeVideoZoom = false,
     int initialBoxFitMode = 0,
     Size? initialPlayerSize,
+    bool initialTabletopContainMode = false,
     this.onBoxFitModeChanged,
   }) : _boxFitMode = initialBoxFitMode,
+       _tabletopContainMode = initialTabletopContainMode,
        _playerSize = initialPlayerSize {
     _debouncedUpdateVideoFilter = debounce(
       updateVideoFilter,
@@ -106,9 +113,9 @@ class VideoFilterManager {
   }
 
   /// Current BoxFit mode (0=contain, 1=cover, 2=fill)
-  int get boxFitMode => _boxFitMode;
+  int get boxFitMode => _tabletopContainMode ? 0 : _boxFitMode;
 
-  double get zoomScale => _zoomScale;
+  double get zoomScale => _tabletopContainMode ? 1.0 : _zoomScale;
 
   Size? get playerSize => _playerSize;
 
@@ -126,6 +133,7 @@ class VideoFilterManager {
   }
 
   double setZoomScale(double scale) {
+    if (_tabletopContainMode) return 1.0;
     final next = normalizeZoomScale(scale);
     if (_zoomScale == next) return _zoomScale;
     _zoomScale = next;
@@ -135,6 +143,7 @@ class VideoFilterManager {
 
   /// Cycle through BoxFit modes: contain → cover → fill → contain (for button)
   void cycleBoxFitMode() {
+    if (_tabletopContainMode) return;
     _boxFitMode = (_boxFitMode + 1) % 3;
     onBoxFitModeChanged?.call(_boxFitMode);
     updateVideoFilter();
@@ -212,6 +221,26 @@ class VideoFilterManager {
     }
   }
 
+  /// Apply a fold-aware viewport change as one state transition. Updating the
+  /// posture and size separately can briefly restore stretch mode against the
+  /// old tabletop dimensions while unfolding.
+  void updatePlayerLayout(Size size, {required bool isTabletop}) {
+    final sizeChanged =
+        _playerSize == null ||
+        (_playerSize!.width - size.width).abs() > 0.1 ||
+        (_playerSize!.height - size.height).abs() > 0.1;
+    final tabletopChanged = _tabletopContainMode != isTabletop;
+    if (!sizeChanged && !tabletopChanged) return;
+
+    _playerSize = size;
+    _tabletopContainMode = isTabletop;
+    if (tabletopChanged) {
+      updateVideoFilter();
+    } else {
+      debouncedUpdateVideoFilter();
+    }
+  }
+
   /// Update the video scaling and positioning based on current display mode.
   /// Writes are diffed against the last applied values and serialized: while a
   /// run is in flight, further calls coalesce into one trailing re-run instead
@@ -242,8 +271,8 @@ class VideoFilterManager {
 
   Future<void> _applyVideoFilter() async {
     try {
-      final boxFitMode = _boxFitMode;
-      final zoomScale = _zoomScale;
+      final boxFitMode = this.boxFitMode;
+      final zoomScale = this.zoomScale;
       final playerSize = _playerSize;
       final coverMode = boxFitMode == 1;
 

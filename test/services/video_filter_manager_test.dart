@@ -148,6 +148,53 @@ void main() {
     expect(double.parse(aspectWrites.single.value), closeTo(1.0, 0.0001));
   });
 
+  test('tabletop forces contain without losing the ordinary fit and zoom', () async {
+    final player = _RecordingPlayer();
+    final manager = VideoFilterManager(player: player, initialBoxFitMode: 2, initialPlayerSize: const Size(1920, 1080));
+    addTearDown(manager.dispose);
+    manager.setZoomScale(1.5);
+    await manager.updateVideoFilter();
+    player.clearRecords();
+
+    manager.updatePlayerLayout(const Size(2200, 500), isTabletop: true);
+    await manager.updateVideoFilter();
+
+    expect(manager.boxFitMode, 0);
+    expect(manager.zoomScale, 1.0);
+    expect(player.boxFitCalls, [0]);
+    expect(player.zoomCalls, [1.0]);
+    expect(player.writes.where((write) => write.key == 'video-aspect-override').single.value, 'no');
+    expect(player.writes.where((write) => write.key == 'video-zoom').single.value, '0.0');
+
+    player.clearRecords();
+    manager.updatePlayerLayout(const Size(1920, 1080), isTabletop: false);
+    await manager.updateVideoFilter();
+
+    expect(manager.boxFitMode, 2);
+    expect(manager.zoomScale, 1.5);
+    expect(player.boxFitCalls, [2]);
+    expect(player.zoomCalls, [1.5]);
+    final restoredAspect = player.writes.where((write) => write.key == 'video-aspect-override').single.value;
+    expect(double.parse(restoredAspect), closeTo(16 / 9, 0.0001));
+  });
+
+  test('tabletop contain applies when the manager starts after layout', () async {
+    final player = _RecordingPlayer();
+    final manager = VideoFilterManager(
+      player: player,
+      initialBoxFitMode: 2,
+      initialPlayerSize: const Size(2200, 500),
+      initialTabletopContainMode: true,
+    );
+    addTearDown(manager.dispose);
+
+    await manager.updateVideoFilter();
+
+    expect(manager.boxFitMode, 0);
+    expect(player.boxFitCalls, [0]);
+    expect(player.writes.where((write) => write.key == 'video-aspect-override').single.value, 'no');
+  });
+
   // Pinching back is the touch path to an unzoomed picture (#1505). Without a
   // detent, normalizeZoomScale's whole-percent rounding means an unaided pinch
   // leaves the frame at 99% or 101% and the viewer cannot tell why it still

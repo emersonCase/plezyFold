@@ -10,17 +10,28 @@ extension _VideoPlayerBuildMethods on VideoPlayerScreenState {
         (a.height - b.height).abs() <= _videoLayoutSizeTolerance;
   }
 
-  void _scheduleVideoLayoutUpdate(Size newSize) {
+  void _scheduleVideoLayoutUpdate(Size newSize, {required bool isTabletop}) {
     final currentPlayer = player;
     if (currentPlayer == null) return;
 
+    // A newer build wins even when it happens to match the last applied
+    // layout; otherwise it could leave an already queued opposite posture.
+    if (_videoLayoutUpdateScheduled) {
+      _pendingVideoLayoutSize = newSize;
+      _pendingVideoLayoutIsTabletop = isTabletop;
+      return;
+    }
+
     final lastSize = _lastVideoLayoutSize;
-    if (_lastVideoLayoutPlayer == currentPlayer && lastSize != null && _isSameVideoLayoutSize(lastSize, newSize)) {
+    if (_lastVideoLayoutPlayer == currentPlayer &&
+        lastSize != null &&
+        _lastVideoLayoutIsTabletop == isTabletop &&
+        _isSameVideoLayoutSize(lastSize, newSize)) {
       return;
     }
 
     _pendingVideoLayoutSize = newSize;
-    if (_videoLayoutUpdateScheduled) return;
+    _pendingVideoLayoutIsTabletop = isTabletop;
     _videoLayoutUpdateScheduled = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -28,6 +39,7 @@ extension _VideoPlayerBuildMethods on VideoPlayerScreenState {
       if (!mounted) return;
 
       final pendingSize = _pendingVideoLayoutSize;
+      final pendingIsTabletop = _pendingVideoLayoutIsTabletop;
       final currentPlayer = player;
       _pendingVideoLayoutSize = null;
       if (pendingSize == null || currentPlayer == null) return;
@@ -35,13 +47,15 @@ extension _VideoPlayerBuildMethods on VideoPlayerScreenState {
       final lastSize = _lastVideoLayoutSize;
       if (_lastVideoLayoutPlayer == currentPlayer &&
           lastSize != null &&
+          _lastVideoLayoutIsTabletop == pendingIsTabletop &&
           _isSameVideoLayoutSize(lastSize, pendingSize)) {
         return;
       }
 
       _lastVideoLayoutSize = pendingSize;
       _lastVideoLayoutPlayer = currentPlayer;
-      _videoFilterManager?.updatePlayerSize(pendingSize);
+      _lastVideoLayoutIsTabletop = pendingIsTabletop;
+      _videoFilterManager?.updatePlayerLayout(pendingSize, isTabletop: pendingIsTabletop);
       unawaited(currentPlayer.updateFrame());
     });
   }
@@ -245,7 +259,10 @@ extension _VideoPlayerBuildMethods on VideoPlayerScreenState {
                           viewport: viewport,
                           devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
                         );
-                        _scheduleVideoLayoutUpdate(tabletopLayout?.videoRect.size ?? viewport);
+                        _scheduleVideoLayoutUpdate(
+                          tabletopLayout?.videoRect.size ?? viewport,
+                          isTabletop: tabletopLayout != null,
+                        );
 
                         var authority = (canControlPlayback: true, canNavigateMediaItems: true);
                         try {
